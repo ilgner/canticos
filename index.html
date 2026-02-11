@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -10,6 +11,7 @@
   <meta name="theme-color" content="#111827">
   <link rel="stylesheet" href="./styles.css">
 </head>
+
 <body>
   <header class="top">
     <div class="brand">
@@ -41,7 +43,10 @@
     <section id="screenDetail" class="panel hidden" aria-hidden="true">
       <div class="detailTop">
         <button id="btnBack" class="backBtn" type="button">← Voltar</button>
+
         <div class="detailBtns">
+          <button id="btnAminus" type="button" aria-label="Diminuir fonte">A-</button>
+          <button id="btnAplus" type="button" aria-label="Aumentar fonte">A+</button>
           <button id="btnCopy" type="button">Copiar</button>
           <button id="btnShare" type="button">Compartilhar</button>
         </div>
@@ -62,4 +67,5 @@
 
   <script src="./app.js" type="module"></script>
 </body>
+
 </html>

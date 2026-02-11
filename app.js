@@ -15,9 +15,34 @@ const screenList = $("#screenList");
 const screenDetail = $("#screenDetail");
 const btnBack = $("#btnBack");
 
+const btnAminus = $("#btnAminus");
+const btnAplus  = $("#btnAplus");
+
+
 let hymns = [];
 let filtered = [];
 let selectedId = null;
+
+
+// acessibilidade: tamanho da letra (limites)
+const FONT_MIN = 14;   // mínimo confortável
+const FONT_MAX = 22;   // máximo "não exagerado" (bom p/ acessibilidade sem estourar layout)
+const FONT_STEP = 2;
+
+let fontSize = Number(localStorage.getItem("fontSize") || "16");
+if(!Number.isFinite(fontSize)) fontSize = 16;
+fontSize = Math.max(FONT_MIN, Math.min(FONT_MAX, fontSize));
+
+function applyFontSize(){
+  document.documentElement.style.setProperty("--lyrics-size", `${fontSize}px`);
+  try{ localStorage.setItem("fontSize", String(fontSize)); }catch{}
+  if(btnAminus) btnAminus.disabled = fontSize <= FONT_MIN;
+  if(btnAplus)  btnAplus.disabled  = fontSize >= FONT_MAX;
+}
+applyFontSize();
+
+
+
 
 function normalize(s){
   return (s || "")
@@ -53,12 +78,10 @@ function openDetail(){
 }
 
 function closeDetail(){
+  document.body.classList.remove("detail-open");
   screenDetail.classList.add("hidden");
-  screenDetail.setAttribute("aria-hidden", "true");
   screenList.classList.remove("hidden");
-
-  // voltar foco na busca (melhor no mobile)
-  try{ elQ.focus(); }catch{}
+  // NÃO focar automaticamente para não abrir o teclado no mobile
 }
 
 function renderList(){
@@ -201,6 +224,19 @@ btnShare?.addEventListener("click", async () => {
     setTimeout(() => elStatus.textContent = "", 1400);
   }
 });
+
+btnAminus?.addEventListener("click", () => {
+  fontSize = Math.max(FONT_MIN, fontSize - FONT_STEP);
+  applyFontSize();
+});
+
+btnAplus?.addEventListener("click", () => {
+  fontSize = Math.min(FONT_MAX, fontSize + FONT_STEP);
+  applyFontSize();
+});
+
+
+
 
 // Service worker
 if("serviceWorker" in navigator){
