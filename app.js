@@ -42,16 +42,23 @@ function snippet(text, q){
 
 function openDetail(){
   screenDetail.classList.remove("hidden");
+  screenDetail.setAttribute("aria-hidden", "false");
   screenList.classList.add("hidden");
-  // scroll topo da tela do detalhe
-  screenDetail.scrollTo({ top: 0, behavior: "instant" });
+
+  // Voltar do Android (e também do navegador) fecha o detalhe
+  history.pushState({ view: "detail" }, "");
+
+  // sobe para o topo
+  screenDetail.scrollTo({ top: 0 });
 }
 
 function closeDetail(){
   screenDetail.classList.add("hidden");
+  screenDetail.setAttribute("aria-hidden", "true");
   screenList.classList.remove("hidden");
-  // mantém o foco na busca no mobile
-  elQ?.focus?.();
+
+  // voltar foco na busca (melhor no mobile)
+  try{ elQ.focus(); }catch{}
 }
 
 function renderList(){
@@ -62,8 +69,10 @@ function renderList(){
 
   for(const h of filtered){
     const li = document.createElement("li");
-    const id = Number(h.id);
+
+    const id = Number(h.id); // garante number
     li.dataset.id = String(id);
+
     if(id === selectedId) li.classList.add("active");
 
     const title = document.createElement("div");
@@ -140,17 +149,21 @@ async function load(){
   }
 }
 
-btnBack?.addEventListener("click", () => closeDetail());
+btnBack?.addEventListener("click", () => {
+  // se estamos no "state detail", voltar também resolve
+  if(history.state?.view === "detail") history.back();
+  else closeDetail();
+});
 
-// Android: botão "voltar" do sistema
+// Botão voltar do Android / navegador
 window.addEventListener("popstate", () => {
-  // se estiver no detalhe, fecha
+  // se o detalhe está aberto, fecha
   if(!screenDetail.classList.contains("hidden")) closeDetail();
 });
 
 btnClear?.addEventListener("click", () => {
   elQ.value = "";
-  elQ.focus();
+  try{ elQ.focus(); }catch{}
   applyFilter();
 });
 
