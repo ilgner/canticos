@@ -3,8 +3,6 @@ const $ = (sel) => document.querySelector(sel);
 const elQ = $("#q");
 const elItems = $("#items");
 const elCount = $("#count");
-const elEmpty = $("#empty");
-const elDetail = $("#detail");
 const elDTitle = $("#dTitle");
 const elDMeta = $("#dMeta");
 const elDLyrics = $("#dLyrics");
@@ -12,6 +10,10 @@ const btnClear = $("#btnClear");
 const btnCopy = $("#btnCopy");
 const btnShare = $("#btnShare");
 const elStatus = $("#status");
+
+const screenList = $("#screenList");
+const screenDetail = $("#screenDetail");
+const btnBack = $("#btnBack");
 
 let hymns = [];
 let filtered = [];
@@ -38,6 +40,20 @@ function snippet(text, q){
   return s;
 }
 
+function openDetail(){
+  screenDetail.classList.remove("hidden");
+  screenList.classList.add("hidden");
+  // scroll topo da tela do detalhe
+  screenDetail.scrollTo({ top: 0, behavior: "instant" });
+}
+
+function closeDetail(){
+  screenDetail.classList.add("hidden");
+  screenList.classList.remove("hidden");
+  // mantém o foco na busca no mobile
+  elQ?.focus?.();
+}
+
 function renderList(){
   elItems.innerHTML = "";
   elCount.textContent = String(filtered.length);
@@ -46,10 +62,8 @@ function renderList(){
 
   for(const h of filtered){
     const li = document.createElement("li");
-
-    const id = Number(h.id); // garante number
+    const id = Number(h.id);
     li.dataset.id = String(id);
-
     if(id === selectedId) li.classList.add("active");
 
     const title = document.createElement("div");
@@ -63,31 +77,27 @@ function renderList(){
     li.appendChild(title);
     li.appendChild(sub);
 
-    // clique sempre passando number
-    li.addEventListener("click", () => select(id));
-
+    li.addEventListener("click", () => select(id, true));
     elItems.appendChild(li);
   }
 }
 
-function select(id){
+function select(id, shouldOpen = false){
   id = Number(id);
   selectedId = id;
 
-  // find robusto caso venha string no JSON
   const h = hymns.find(x => Number(x.id) === id);
   if(!h) return;
-
-  elEmpty.classList.add("hidden");
-  elDetail.classList.remove("hidden");
 
   elDTitle.textContent = `${h.number} - ${h.title}`;
   elDMeta.textContent = `${(h.lyrics || "").split(/\n+/).filter(Boolean).length} linhas`;
   elDLyrics.textContent = h.lyrics || "";
 
-  // save last opened
   try{ localStorage.setItem("lastId", String(id)); }catch{}
+
   renderList();
+
+  if(shouldOpen) openDetail();
 }
 
 function applyFilter(){
@@ -105,22 +115,18 @@ function applyFilter(){
     });
   }
 
-  // se o selecionado não estiver no filtro atual, limpa viewer
+  // se selecionado não estiver no filtro, desmarca
   if(selectedId !== null && !filtered.some(x => Number(x.id) === selectedId)){
     selectedId = null;
-    elDetail.classList.add("hidden");
-    elEmpty.classList.remove("hidden");
   }
 
   renderList();
 }
 
 async function load(){
-  // dica: em Pages às vezes cache pega pesado, no-cache ajuda
   const res = await fetch("./louvores.json", { cache: "no-cache" });
-
-  // normaliza ids como number já no carregamento
   const data = await res.json();
+
   hymns = Array.isArray(data)
     ? data.map(h => ({ ...h, id: Number(h.id) }))
     : [];
@@ -128,20 +134,29 @@ async function load(){
   filtered = hymns;
   applyFilter();
 
-  const lastRaw = localStorage.getItem("lastId");
-  const last = Number(lastRaw);
-  if(Number.isFinite(last) && last > 0) select(last);
+  const last = Number(localStorage.getItem("lastId") || "");
+  if(Number.isFinite(last) && last > 0){
+    select(last, false); // não abre automático
+  }
 }
 
-btnClear.addEventListener("click", () => {
+btnBack?.addEventListener("click", () => closeDetail());
+
+// Android: botão "voltar" do sistema
+window.addEventListener("popstate", () => {
+  // se estiver no detalhe, fecha
+  if(!screenDetail.classList.contains("hidden")) closeDetail();
+});
+
+btnClear?.addEventListener("click", () => {
   elQ.value = "";
   elQ.focus();
   applyFilter();
 });
 
-elQ.addEventListener("input", () => applyFilter());
+elQ?.addEventListener("input", () => applyFilter());
 
-btnCopy.addEventListener("click", async () => {
+btnCopy?.addEventListener("click", async () => {
   const h = hymns.find(x => Number(x.id) === selectedId);
   if(!h) return;
 
@@ -157,7 +172,7 @@ btnCopy.addEventListener("click", async () => {
   }
 });
 
-btnShare.addEventListener("click", async () => {
+btnShare?.addEventListener("click", async () => {
   const h = hymns.find(x => Number(x.id) === selectedId);
   if(!h) return;
 
@@ -168,7 +183,6 @@ btnShare.addEventListener("click", async () => {
       await navigator.share({ title: h.title, text });
     }catch{}
   }else{
-    // fallback: copy
     try{ await navigator.clipboard.writeText(text); }catch{}
     elStatus.textContent = "Sem Share API: copiei ✔";
     setTimeout(() => elStatus.textContent = "", 1400);
