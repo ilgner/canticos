@@ -20,20 +20,21 @@ let selectedId = null;
 function normalize(s){
   return (s || "")
     .toLowerCase()
-    .normalize("NFD").replace(/\p{Diacritic}/gu, "");
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "");
 }
 
 function snippet(text, q){
   const t = (text || "").replace(/\s+/g, " ").trim();
   if(!t) return "";
-  if(!q) return t.slice(0, 90) + (t.length>90 ? "…" : "");
+  if(!q) return t.slice(0, 90) + (t.length > 90 ? "…" : "");
   const idx = normalize(t).indexOf(normalize(q));
-  if(idx === -1) return t.slice(0, 90) + (t.length>90 ? "…" : "");
+  if(idx === -1) return t.slice(0, 90) + (t.length > 90 ? "…" : "");
   const start = Math.max(0, idx - 35);
   const end = Math.min(t.length, idx + 55);
   let s = t.slice(start, end);
-  if(start>0) s = "…" + s;
-  if(end<t.length) s = s + "…";
+  if(start > 0) s = "…" + s;
+  if(end < t.length) s = s + "…";
   return s;
 }
 
@@ -45,8 +46,11 @@ function renderList(){
 
   for(const h of filtered){
     const li = document.createElement("li");
-    li.dataset.id = h.id;
-    if(h.id === selectedId) li.classList.add("active");
+
+    const id = Number(h.id); // garante number
+    li.dataset.id = String(id);
+
+    if(id === selectedId) li.classList.add("active");
 
     const title = document.createElement("div");
     title.className = "t";
@@ -58,22 +62,28 @@ function renderList(){
 
     li.appendChild(title);
     li.appendChild(sub);
-    li.addEventListener("click", () => select(h.id));
+
+    // clique sempre passando number
+    li.addEventListener("click", () => select(id));
+
     elItems.appendChild(li);
   }
 }
 
 function select(id){
+  id = Number(id);
   selectedId = id;
-  const h = hymns.find(x => x.id === id);
+
+  // find robusto caso venha string no JSON
+  const h = hymns.find(x => Number(x.id) === id);
   if(!h) return;
 
   elEmpty.classList.add("hidden");
   elDetail.classList.remove("hidden");
 
   elDTitle.textContent = `${h.number} - ${h.title}`;
-  elDMeta.textContent = `${h.lyrics.split(/\n+/).filter(Boolean).length} linhas`;
-  elDLyrics.textContent = h.lyrics;
+  elDMeta.textContent = `${(h.lyrics || "").split(/\n+/).filter(Boolean).length} linhas`;
+  elDLyrics.textContent = h.lyrics || "";
 
   // save last opened
   try{ localStorage.setItem("lastId", String(id)); }catch{}
@@ -82,6 +92,7 @@ function select(id){
 
 function applyFilter(){
   const q = elQ.value.trim();
+
   if(!q){
     filtered = hymns;
   }else{
@@ -89,26 +100,37 @@ function applyFilter(){
     filtered = hymns.filter(h => {
       const t = normalize(h.title);
       const l = normalize(h.lyrics);
-      return t.includes(nq) || l.includes(nq) || normalize(h.number).includes(nq);
+      const n = normalize(h.number);
+      return t.includes(nq) || l.includes(nq) || n.includes(nq);
     });
   }
-  // if selection not in filtered, clear viewer
-  if(selectedId && !filtered.some(x => x.id === selectedId)){
+
+  // se o selecionado não estiver no filtro atual, limpa viewer
+  if(selectedId !== null && !filtered.some(x => Number(x.id) === selectedId)){
     selectedId = null;
     elDetail.classList.add("hidden");
     elEmpty.classList.remove("hidden");
   }
+
   renderList();
 }
 
 async function load(){
-  const res = await fetch("./louvores.json", {cache: "no-cache"});
-  hymns = await res.json();
+  // dica: em Pages às vezes cache pega pesado, no-cache ajuda
+  const res = await fetch("./louvores.json", { cache: "no-cache" });
+
+  // normaliza ids como number já no carregamento
+  const data = await res.json();
+  hymns = Array.isArray(data)
+    ? data.map(h => ({ ...h, id: Number(h.id) }))
+    : [];
+
   filtered = hymns;
   applyFilter();
 
-  const last = Number(localStorage.getItem("lastId") || "");
-  if(last) select(last);
+  const lastRaw = localStorage.getItem("lastId");
+  const last = Number(lastRaw);
+  if(Number.isFinite(last) && last > 0) select(last);
 }
 
 btnClear.addEventListener("click", () => {
@@ -120,9 +142,11 @@ btnClear.addEventListener("click", () => {
 elQ.addEventListener("input", () => applyFilter());
 
 btnCopy.addEventListener("click", async () => {
-  const h = hymns.find(x => x.id === selectedId);
+  const h = hymns.find(x => Number(x.id) === selectedId);
   if(!h) return;
-  const text = `${h.number} - ${h.title}\n\n${h.lyrics}`;
+
+  const text = `${h.number} - ${h.title}\n\n${h.lyrics || ""}`;
+
   try{
     await navigator.clipboard.writeText(text);
     elStatus.textContent = "Copiado ✔";
@@ -134,12 +158,14 @@ btnCopy.addEventListener("click", async () => {
 });
 
 btnShare.addEventListener("click", async () => {
-  const h = hymns.find(x => x.id === selectedId);
+  const h = hymns.find(x => Number(x.id) === selectedId);
   if(!h) return;
-  const text = `${h.number} - ${h.title}\n\n${h.lyrics}`;
+
+  const text = `${h.number} - ${h.title}\n\n${h.lyrics || ""}`;
+
   if(navigator.share){
     try{
-      await navigator.share({title: h.title, text});
+      await navigator.share({ title: h.title, text });
     }catch{}
   }else{
     // fallback: copy
