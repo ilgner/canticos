@@ -26,8 +26,9 @@
     </div>
   </header>
 
-  <main class="grid">
-    <section class="list">
+  <main class="screen">
+    <!-- TELA: LISTA -->
+    <section id="screenList" class="panel">
       <div class="listHeader">
         <span id="count">0</span>
         <span class="muted">resultados</span>
@@ -35,25 +36,21 @@
       <ul id="items"></ul>
     </section>
 
-    <section class="viewer">
-      <div id="empty" class="empty">
-        <h2>Selecione um louvor</h2>
-        <p class="muted">Clique em um item da lista para ver a letra aqui.</p>
+    <!-- TELA: DETALHE (FULLSCREEN) -->
+    <section id="screenDetail" class="panel hidden" aria-hidden="true">
+      <div class="detailTop">
+        <button id="btnBack" class="backBtn" type="button">← Voltar</button>
+        <div class="detailBtns">
+          <button id="btnCopy" type="button">Copiar</button>
+          <button id="btnShare" type="button">Compartilhar</button>
+        </div>
       </div>
 
-      <article id="detail" class="detail hidden">
-        <div class="detailHeader">
-          <div>
-            <h2 id="dTitle"></h2>
-            <p class="muted" id="dMeta"></p>
-          </div>
-          <div class="detailBtns">
-            <button id="btnCopy">Copiar letra</button>
-            <button id="btnShare">Compartilhar</button>
-          </div>
-        </div>
+      <div class="detailBody">
+        <h2 id="dTitle"></h2>
+        <p class="muted" id="dMeta"></p>
         <pre id="dLyrics"></pre>
-      </article>
+      </div>
     </section>
   </main>
 
